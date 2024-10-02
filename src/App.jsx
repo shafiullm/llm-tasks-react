@@ -33,14 +33,17 @@ const Timer = ({ time, isRunning, onStart, onPause, onReset }) => (
       <div className="flex justify-center space-x-4">
         <Button
           onClick={isRunning ? onPause : onStart}
-          className="w-32 h-12 flex text-center items-center justify-center"
+          className={`w-32 h-12 flex text-center items-center justify-center ${
+            isRunning
+              ? "bg-black hover:bg-gray-800"
+              : "bg-green-500 hover:bg-green-600"
+          }`}
         >
           {isRunning ? "Pause" : "Start"}
         </Button>
         <Button
           onClick={onReset}
-          variant="outline"
-          className="w-32 h-12 flex items-center justify-center"
+          className="w-32 h-12 flex items-center justify-center bg-red-500 hover:bg-red-600"
         >
           Reset
         </Button>
@@ -128,7 +131,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div
+      className={`min-h-screen flex items-center justify-center p-4 ${
+        isRunning
+          ? "bg-black"
+          : "bg-gradient-to-br from-gray-200 to-gray-400 transition-colors duration-500"
+      }`}
+    >
       <div className="w-full max-w-md">
         {currentTimer === "main" ? (
           <Timer
