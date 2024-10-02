@@ -48,8 +48,8 @@ export default function App() {
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="bg-blue-500 text-white rounded-t-lg">
-          <CardTitle className="text-2xl font-bold text-center">
-            Water Intake Tracker
+          <CardTitle className="text-3xl text-center">
+            Water Consumption Tracker
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 p-6">
