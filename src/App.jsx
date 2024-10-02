@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -7,80 +7,67 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-} from "@/components/ui/modal";
+import { Modal } from "@/components/ui/modal";
 
 function useTimer(initialTime) {
-  const [timeLeft, setTimeLeft] = useState(initialTime);
+  const [time, setTime] = useState(initialTime);
   const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
     let interval = null;
-    if (isActive && timeLeft > 0) {
+    if (isActive && time > 0) {
       interval = setInterval(() => {
-        setTimeLeft((timeLeft) => timeLeft - 1);
+        setTime((time) => time - 1);
       }, 1000);
-    } else if (timeLeft === 0) {
+    } else if (time === 0) {
       setIsActive(false);
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
+  }, [isActive, time]);
 
-  const start = () => setIsActive(true);
-  const pause = () => setIsActive(false);
-  const reset = () => {
-    setIsActive(false);
-    setTimeLeft(initialTime);
+  return {
+    time,
+    start: () => setIsActive(true),
+    pause: () => setIsActive(false),
+    reset: (newTime = initialTime) => {
+      setTime(newTime);
+      setIsActive(false);
+    },
+    isActive,
   };
-
-  return { timeLeft, start, pause, reset, isActive };
 }
 
-function TimerCard({
-  timeLeft,
-  start,
-  pause,
-  reset,
-  isActive,
-  lookAwayCount,
-  cancelCount,
-}) {
+function TimerCard({ time, onTimerEnd, lookAwayCount, cancelCount }) {
+  const timer = useTimer(time);
+
+  useEffect(() => {
+    if (timer.time === 0) onTimerEnd();
+  }, [timer.time, onTimerEnd]);
+
   return (
-    <Card
-      className={`w-full max-w-sm mx-auto mt-10 ${
-        isActive
-          ? "bg-black text-white"
-          : "bg-gradient-to-r from-gray-200 to-gray-300"
-      }`}
-    >
+    <Card className="w-full max-w-sm mx-auto mt-10 shadow-lg">
       <CardHeader>
-        <CardTitle>20-20-20 Rule Tracker</CardTitle>
+        <CardTitle>20-20-20 Rule Timer</CardTitle>
       </CardHeader>
       <CardContent className="text-center">
-        <div className="text-4xl mb-4">
-          {Math.floor(timeLeft / 60)}:{("0" + (timeLeft % 60)).slice(-2)}
+        <div className="text-5xl mb-4">
+          {Math.floor(timer.time / 60)
+            .toString()
+            .padStart(2, "0")}
+          :{(timer.time % 60).toString().padStart(2, "0")}
         </div>
-        <div>
-          Looked Away: {lookAwayCount} | Cancelled: {cancelCount}
+        <div className="text-sm">
+          Looked Away: {lookAwayCount}, Cancelled: {cancelCount}
         </div>
       </CardContent>
       <CardFooter>
         <Button
-          onClick={isActive ? pause : start}
-          className={`mr-2 ${
-            isActive
-              ? "bg-yellow-500 hover:bg-yellow-600"
-              : "bg-green-500 hover:bg-green-600"
-          }`}
+          onClick={timer.isActive ? timer.pause : timer.start}
+          className={timer.isActive ? "bg-black" : "bg-green-500"}
         >
-          {isActive ? "Pause" : "Start"}
+          {timer.isActive ? "Pause" : "Start"}
         </Button>
-        <Button onClick={reset} className="bg-red-500 hover:bg-red-600">
+        <Button onClick={timer.reset} className="ml-2 bg-red-500">
           Reset
         </Button>
       </CardFooter>
@@ -88,104 +75,72 @@ function TimerCard({
   );
 }
 
-function LookAwayModal({ onClose, onContinue, timeLeft, start, isActive }) {
-  return (
-    <Modal open={true} onClose={onClose}>
-      <ModalContent>
-        <ModalHeader>
-          <ModalTitle>Time to Look Away</ModalTitle>
-        </ModalHeader>
-        <ModalBody>
-          <p>You have to look at least 20 feet away for 20 seconds.</p>
-          <div className="text-2xl text-center mt-4">
-            {Math.floor(timeLeft / 60)}:{("0" + (timeLeft % 60)).slice(-2)}
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button
-            onClick={onContinue}
-            className="mr-2 bg-blue-500 hover:bg-blue-600"
-          >
-            Continue
-          </Button>
-          <Button onClick={onClose} variant="secondary">
-            Cancel
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
-  );
-}
-
 export default function App() {
-  const twentyMinutes = 20 * 60;
-  const twentySeconds = 20;
-  const {
-    timeLeft: timer,
-    start,
-    pause,
-    reset,
-    isActive,
-  } = useTimer(twentyMinutes);
-  const { timeLeft: lookAwayTimer } = useTimer(twentySeconds);
   const [showModal, setShowModal] = useState(false);
+  const [modalPhase, setModalPhase] = useState(0); // 0: initial, 1: 20 sec timer, 2: end
   const [lookAwayCount, setLookAwayCount] = useState(0);
   const [cancelCount, setCancelCount] = useState(0);
-  const [isLookAway, setIsLookAway] = useState(false);
 
-  useEffect(() => {
-    if (timer === 0 && !isLookAway) {
-      setShowModal(true);
-      setIsLookAway(true);
-    }
-  }, [timer, isLookAway]);
-
-  const handleContinue = () => {
-    setShowModal(false);
-    start();
-    setLookAwayCount((prev) => prev + 1);
+  const handleTimerEnd = () => {
+    setShowModal(true);
+    setModalPhase(0);
   };
 
-  const handleClose = () => {
-    setShowModal(false);
-    reset();
-    setCancelCount((prev) => prev + 1);
-  };
-
-  const handleLookAwayComplete = () => {
-    if (lookAwayTimer === 0) {
-      setIsLookAway(false);
-    }
-  };
-
-  useEffect(handleLookAwayComplete, [lookAwayTimer]);
+  const lookAwayTimer = useTimer(20);
 
   return (
     <div
       className={`min-h-screen flex items-center justify-center ${
-        showModal
-          ? "bg-gradient-to-r from-yellow-200 to-yellow-300"
-          : "bg-gradient-to-r from-gray-100 to-gray-200"
+        showModal ? "bg-black" : "bg-gradient-to-r from-gray-300 to-gray-500"
       }`}
     >
       <TimerCard
-        timeLeft={isLookAway ? twentySeconds : timer}
-        start={isLookAway ? () => {} : start}
-        pause={isLookAway ? () => {} : pause}
-        reset={reset}
-        isActive={isActive && !isLookAway}
+        time={20 * 60}
+        onTimerEnd={handleTimerEnd}
         lookAwayCount={lookAwayCount}
         cancelCount={cancelCount}
       />
-      {showModal && (
-        <LookAwayModal
-          onClose={handleClose}
-          onContinue={handleContinue}
-          timeLeft={lookAwayTimer}
-          start={start}
-          isActive={isActive}
-        />
-      )}
+      <Modal open={showModal} onOpenChange={setShowModal}>
+        {modalPhase === 0 && (
+          <>
+            <h2 className="text-lg font-bold mb-4">Look Away Now!</h2>
+            <p>Look at least 20 feet away for 20 seconds.</p>
+            <Button onClick={() => setModalPhase(1)}>Continue</Button>
+            <Button
+              onClick={() => {
+                setCancelCount((c) => c + 1);
+                setShowModal(false);
+              }}
+              className="ml-2 bg-red-500"
+            >
+              Cancel
+            </Button>
+          </>
+        )}
+        {modalPhase === 1 && (
+          <>
+            <h2 className="text-lg font-bold mb-4">Looking Away...</h2>
+            <div>{lookAwayTimer.time}s</div>
+            {lookAwayTimer.time === 0 && (
+              <Button onClick={() => setModalPhase(2)}>Done</Button>
+            )}
+          </>
+        )}
+        {modalPhase === 2 && (
+          <>
+            <h2 className="text-lg font-bold mb-4">Done!</h2>
+            <p>You can start working now.</p>
+            <Button
+              onClick={() => {
+                setShowModal(false);
+                setLookAwayCount((c) => c + 1);
+              }}
+            >
+              Continue
+            </Button>
+          </>
+        )}
+      </Modal>
     </div>
   );
 }
