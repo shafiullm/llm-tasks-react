@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,6 +15,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 
 const formatTime = (seconds) => {
@@ -19,7 +26,22 @@ const formatTime = (seconds) => {
     .padStart(2, "0")}`;
 };
 
-const Timer = ({ time, isRunning, onStart, onPause, onReset }) => (
+const CounterDisplay = ({ label, count }) => (
+  <div className="flex flex-col items-center px-4">
+    <span className="text-2xl font-bold">{count}</span>
+    <span className="text-xs text-gray-600">{label}</span>
+  </div>
+);
+
+const Timer = ({
+  time,
+  isRunning,
+  onStart,
+  onPause,
+  onReset,
+  lookAwayCount,
+  cancelCount,
+}) => (
   <Card className="w-full max-w-sm mx-auto">
     <CardHeader>
       <CardTitle className="text-center text-2xl font-bold">
@@ -49,10 +71,23 @@ const Timer = ({ time, isRunning, onStart, onPause, onReset }) => (
         </Button>
       </div>
     </CardContent>
+    <CardFooter className="flex justify-center items-center border-t pt-4">
+      <CounterDisplay label="Look Aways" count={lookAwayCount} />
+      <div className="h-10 border-l mx-2"></div>
+      <CounterDisplay label="Cancels" count={cancelCount} />
+    </CardFooter>
   </Card>
 );
 
-const Modal = ({ isOpen, title, description, actionText, onAction }) => (
+const Modal = ({
+  isOpen,
+  title,
+  description,
+  actionText,
+  onAction,
+  onCancel,
+  showCancel,
+}) => (
   <AlertDialog open={isOpen}>
     <AlertDialogContent>
       <AlertDialogHeader>
@@ -66,6 +101,9 @@ const Modal = ({ isOpen, title, description, actionText, onAction }) => (
         >
           {actionText}
         </AlertDialogAction>
+        {showCancel && (
+          <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
+        )}
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
@@ -78,6 +116,8 @@ export default function App() {
   const [showLookAwayModal, setShowLookAwayModal] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [currentTimer, setCurrentTimer] = useState("main");
+  const [lookAwayCount, setLookAwayCount] = useState(0);
+  const [cancelCount, setCancelCount] = useState(0);
 
   useEffect(() => {
     let interval;
@@ -120,6 +160,13 @@ export default function App() {
     setShowLookAwayModal(false);
     setCurrentTimer("lookAway");
     setIsRunning(true);
+    setLookAwayCount((prev) => prev + 1);
+  };
+
+  const handleLookAwayCancel = () => {
+    setShowLookAwayModal(false);
+    setIsRunning(true);
+    setCancelCount((prev) => prev + 1);
   };
 
   const handleCompletion = () => {
@@ -133,9 +180,7 @@ export default function App() {
   return (
     <div
       className={`min-h-screen flex items-center justify-center p-4 ${
-        isRunning
-          ? "bg-black"
-          : "bg-gradient-to-br from-gray-200 to-gray-400 transition-colors duration-500"
+        isRunning ? "bg-black" : "bg-gradient-to-br from-gray-200 to-gray-400"
       }`}
     >
       <div className="w-full max-w-md">
@@ -146,6 +191,8 @@ export default function App() {
             onStart={handleStartPause}
             onPause={handleStartPause}
             onReset={handleReset}
+            lookAwayCount={lookAwayCount}
+            cancelCount={cancelCount}
           />
         ) : (
           <Card className="w-full max-w-sm mx-auto">
@@ -168,6 +215,8 @@ export default function App() {
           description="Look at least 20 feet away for 20 seconds."
           actionText="Continue"
           onAction={handleLookAwayStart}
+          onCancel={handleLookAwayCancel}
+          showCancel={true}
         />
 
         <Modal
@@ -176,6 +225,7 @@ export default function App() {
           description="You can start working now."
           actionText="Continue"
           onAction={handleCompletion}
+          showCancel={false}
         />
       </div>
     </div>
