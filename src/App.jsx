@@ -1,102 +1,131 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 
-const App = () => {
-  const [consumed, setConsumed] = useState(0);
+export default function App() {
+  const [weight, setWeight] = useState(65);
+  const [currentConsumption, setCurrentConsumption] = useState(0);
+  const [totalConsumed, setTotalConsumed] = useState(0);
 
-  const remaining = useMemo(() => Math.max(3.7 - consumed, 0), [consumed]);
-  const progress = useMemo(() => {
-    if (consumed > 3.7) return 100;
-    return (consumed / 3.7) * 100;
-  }, [consumed]);
+  const expectedConsumption = weight * 0.03;
 
-  const handleIncrement = () =>
-    setConsumed((prev) => Math.min(prev + 0.25, 3.7));
-  const handleDecrement = () => setConsumed((prev) => Math.max(prev - 0.25, 0));
-  const handleAdd = () => setConsumed(consumed + parseFloat(currentInput || 0));
-  const handleClear = () => setConsumed(0);
+  const handleWeightChange = (change) => {
+    setWeight((prev) => Math.max(0, prev + change));
+  };
 
-  const [currentInput, setCurrentInput] = useState("0.25");
+  const handleConsumptionChange = (change) => {
+    setCurrentConsumption((prev) => Math.max(0, prev + change));
+  };
 
-  const progressBarColor = useMemo(() => {
-    if (consumed < 1.7) return "bg-red-500";
-    if (consumed < 2.7) return "bg-yellow-500";
-    return "bg-green-500";
-  }, [consumed]);
+  const addConsumption = () => {
+    setTotalConsumed((prev) => prev + currentConsumption);
+    setCurrentConsumption(0);
+  };
+
+  const clearConsumption = () => {
+    setTotalConsumed(0);
+    setCurrentConsumption(0);
+  };
+
+  const progressPercentage = (totalConsumed / expectedConsumption) * 100;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-sm">
-        <CardContent>
-          <div className="mb-4">
-            <ProgressBar value={progress} color={progressBarColor} />
-          </div>
-          <ConsumptionDisplay consumed={consumed} remaining={remaining} />
-          <WaterInput
-            onIncrement={handleIncrement}
-            onDecrement={handleDecrement}
-            currentInput={currentInput}
-            setCurrentInput={setCurrentInput}
-            onAdd={handleAdd}
-            onClear={handleClear}
+    <div className="min-h-screen bg-gradient-to-r from-blue-100 to-teal-100 flex flex-col items-center justify-center py-10">
+      <Header />
+      <Card className="w-full max-w-sm p-4">
+        <CardContent className="p-0 space-y-4">
+          <WeightInput weight={weight} onChange={handleWeightChange} />
+          <ConsumptionInput
+            consumption={currentConsumption}
+            onChange={handleConsumptionChange}
           />
+          <ProgressDisplay
+            consumed={totalConsumed}
+            remaining={Math.max(0, expectedConsumption - totalConsumed)}
+            percentage={progressPercentage}
+          />
+          <ControlButtons onAdd={addConsumption} onClear={clearConsumption} />
         </CardContent>
       </Card>
     </div>
   );
-};
+}
 
-const WaterInput = ({
-  onIncrement,
-  onDecrement,
-  currentInput,
-  setCurrentInput,
-  onAdd,
-  onClear,
-}) => (
-  <div className="grid grid-cols-3 gap-2 items-center mb-2">
-    <Button variant="outline" onClick={onDecrement}>
-      -
-    </Button>
-    <Input
-      type="number"
-      step="0.25"
-      value={currentInput}
-      onChange={(e) => setCurrentInput(e.target.value)}
-      className="text-center"
-    />
-    <Button variant="outline" onClick={onIncrement}>
-      +
-    </Button>
-    <Button className="col-span-3 bg-red-500 hover:bg-red-600" onClick={onAdd}>
-      Add
-    </Button>
-    <Button
-      className="col-span-3 bg-red-500 hover:bg-red-600"
-      onClick={onClear}
-    >
-      Clear
-    </Button>
-  </div>
-);
+function Header() {
+  return (
+    <CardHeader className="mb-4 w-full max-w-sm">
+      <CardTitle className="text-center text-white bg-blue-600 p-4 rounded-lg">
+        Water Consumption Tracker
+      </CardTitle>
+    </CardHeader>
+  );
+}
 
-const ConsumptionDisplay = ({ consumed, remaining }) => (
-  <div className="text-center mb-4">
-    <h2 className="text-lg">Consumed: {consumed.toFixed(2)}L</h2>
-    <h2 className="text-lg">Remaining: {remaining.toFixed(2)}L</h2>
-    <p className="text-sm text-gray-500">Goal: 3.7 to 2.7 liters</p>
-  </div>
-);
+function WeightInput({ weight, onChange }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-lg">Your Weight:</span>
+      <div className="flex items-center">
+        <Button variant="outline" onClick={() => onChange(-0.5)}>
+          -
+        </Button>
+        <span className="mx-4">{weight.toFixed(1)} kg</span>
+        <Button variant="outline" onClick={() => onChange(0.5)}>
+          +
+        </Button>
+      </div>
+    </div>
+  );
+}
 
-const ProgressBar = ({ value, color }) => (
-  <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-    <div
-      style={{ width: `${value}%` }}
-      className={`h-2.5 rounded-full ${color}`}
-    ></div>
-  </div>
-);
+function ConsumptionInput({ consumption, onChange }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-lg">Add Water:</span>
+      <div className="flex items-center">
+        <Button variant="outline" onClick={() => onChange(-0.25)}>
+          -
+        </Button>
+        <span className="mx-4">{consumption.toFixed(2)} L</span>
+        <Button variant="outline" onClick={() => onChange(0.25)}>
+          +
+        </Button>
+      </div>
+    </div>
+  );
+}
 
-export default App;
+function ProgressDisplay({ consumed, remaining, percentage }) {
+  let barColor = "bg-red-500";
+  if (percentage >= 100) barColor = "bg-green-500";
+  else if (percentage > 50) barColor = "bg-yellow-500";
+  if (percentage > 150) barColor = "bg-red-500";
+
+  return (
+    <div>
+      <div className="h-4 rounded-full bg-gray-200 mb-2">
+        <div
+          className={`h-full rounded-full ${barColor}`}
+          style={{ width: `${Math.min(200, percentage)}%` }}
+        ></div>
+      </div>
+      <div className="flex justify-between">
+        <span>Consumed: {consumed.toFixed(2)} L</span>
+        <span>Remaining: {remaining.toFixed(2)} L</span>
+      </div>
+    </div>
+  );
+}
+
+function ControlButtons({ onAdd, onClear }) {
+  return (
+    <div className="flex justify-between mt-4">
+      <Button className="bg-green-500 hover:bg-green-600" onClick={onAdd}>
+        Add
+      </Button>
+      <Button className="bg-red-500 hover:bg-red-600" onClick={onClear}>
+        Clear
+      </Button>
+    </div>
+  );
+}
