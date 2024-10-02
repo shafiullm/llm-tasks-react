@@ -1,174 +1,131 @@
 import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
-const formatTime = (seconds) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins.toString().padStart(2, "0")}:${secs
-    .toString()
-    .padStart(2, "0")}`;
+const DAILY_WATER_GOAL = {
+  min: 2.7,
+  max: 3.7,
 };
 
-const Timer = ({ time, isRunning, onStart, onPause, onReset }) => (
-  <Card className="w-full max-w-sm mx-auto">
-    <CardHeader>
-      <CardTitle className="text-center text-2xl font-bold">
-        20-20-20 Rule Timer
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div className="text-center text-7xl font-bold mb-6">
-        {formatTime(time)}
-      </div>
-      <div className="flex justify-center space-x-4">
-        <Button
-          onClick={isRunning ? onPause : onStart}
-          className="w-32 h-12 flex text-center items-center justify-center"
-        >
-          {isRunning ? "Pause" : "Start"}
-        </Button>
-        <Button
-          onClick={onReset}
-          variant="outline"
-          className="w-32 h-12 flex items-center justify-center"
-        >
-          Reset
-        </Button>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const Modal = ({ isOpen, title, description, actionText, onAction }) => (
-  <AlertDialog open={isOpen}>
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>{title}</AlertDialogTitle>
-        <AlertDialogDescription>{description}</AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogAction
-          onClick={onAction}
-          className="w-full sm:w-auto h-12 flex items-center justify-center"
-        >
-          {actionText}
-        </AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
-);
+const CONSUMPTION_LEVELS = {
+  low: 1.7,
+  medium: 2.7,
+  high: 3.7,
+};
 
 export default function App() {
-  const [mainTime, setMainTime] = useState(20 * 60);
-  const [lookAwayTime, setLookAwayTime] = useState(20);
-  const [isRunning, setIsRunning] = useState(false);
-  const [showLookAwayModal, setShowLookAwayModal] = useState(false);
-  const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const [currentTimer, setCurrentTimer] = useState("main");
+  const [waterRemaining, setWaterRemaining] = useState(DAILY_WATER_GOAL.max);
+  const [waterConsumed, setWaterConsumed] = useState(0);
+  const [inputAmount, setInputAmount] = useState(0.0);
 
   useEffect(() => {
-    let interval;
-    if (isRunning) {
-      interval = setInterval(() => {
-        if (currentTimer === "main") {
-          setMainTime((prevTime) => {
-            if (prevTime <= 1) {
-              setIsRunning(false);
-              setShowLookAwayModal(true);
-              return 20 * 60;
-            }
-            return prevTime - 1;
-          });
-        } else if (currentTimer === "lookAway") {
-          setLookAwayTime((prevTime) => {
-            if (prevTime <= 1) {
-              setIsRunning(false);
-              setShowCompletionModal(true);
-              return 20;
-            }
-            return prevTime - 1;
-          });
-        }
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isRunning, currentTimer]);
+    const newWaterRemaining = Math.max(DAILY_WATER_GOAL.max - waterConsumed, 0);
+    setWaterRemaining(Number(newWaterRemaining.toFixed(2)));
+  }, [waterConsumed]);
 
-  const handleStartPause = () => {
-    setIsRunning(!isRunning);
+  const handleIncrement = () => {
+    setInputAmount((prev) => Number((prev + 0.25).toFixed(2)));
   };
 
-  const handleReset = () => {
-    setIsRunning(false);
-    setMainTime(20 * 60);
+  const handleDecrement = () => {
+    setInputAmount((prev) => Math.max(Number((prev - 0.25).toFixed(2)), 0));
   };
 
-  const handleLookAwayStart = () => {
-    setShowLookAwayModal(false);
-    setCurrentTimer("lookAway");
-    setIsRunning(true);
+  const handleAdd = () => {
+    setWaterConsumed((prev) => Number((prev + inputAmount).toFixed(2)));
+    setInputAmount(0.0);
   };
 
-  const handleCompletion = () => {
-    setShowCompletionModal(false);
-    setCurrentTimer("main");
-    setMainTime(20 * 60);
-    setLookAwayTime(20);
-    setIsRunning(true);
+  const handleClear = () => {
+    setWaterConsumed(0);
+    setInputAmount(0.0);
   };
+
+  const getProgressColor = (consumed) => {
+    if (consumed >= CONSUMPTION_LEVELS.high) return "bg-red-500";
+    if (consumed >= CONSUMPTION_LEVELS.medium) return "bg-green-500";
+    if (consumed >= CONSUMPTION_LEVELS.low) return "bg-yellow-500";
+    return "bg-red-500";
+  };
+
+  const progressPercentage = Math.min(
+    (waterConsumed / DAILY_WATER_GOAL.max) * 100,
+    100
+  );
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {currentTimer === "main" ? (
-          <Timer
-            time={mainTime}
-            isRunning={isRunning}
-            onStart={handleStartPause}
-            onPause={handleStartPause}
-            onReset={handleReset}
-          />
-        ) : (
-          <Card className="w-full max-w-sm mx-auto">
-            <CardHeader>
-              <CardTitle className="text-center text-2xl font-bold">
-                Look Away Timer
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center text-7xl font-bold mb-4">
-                {formatTime(lookAwayTime)}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center">
+            Water Consumption Tracker
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+            <div
+              className={`h-2.5 rounded-full ${getProgressColor(
+                waterConsumed
+              )}`}
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
 
-        <Modal
-          isOpen={showLookAwayModal}
-          title="Time to look away!"
-          description="Look at least 20 feet away for 20 seconds."
-          actionText="Continue"
-          onAction={handleLookAwayStart}
-        />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <p className="text-lg font-semibold mb-2">Consumed</p>
+              <p className="text-3xl font-bold text-green-600">
+                {waterConsumed.toFixed(2)} L
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-semibold mb-2">Remaining</p>
+              <p className="text-3xl font-bold text-blue-600">
+                {waterRemaining.toFixed(2)} L
+              </p>
+            </div>
+          </div>
 
-        <Modal
-          isOpen={showCompletionModal}
-          title="Good job!"
-          description="You can start working now."
-          actionText="Continue"
-          onAction={handleCompletion}
-        />
-      </div>
+          <p className="text-sm text-gray-500 text-center">
+            Goal: {DAILY_WATER_GOAL.max} to {DAILY_WATER_GOAL.min} liters
+          </p>
+
+          <div className="flex items-center justify-center space-x-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleDecrement}
+              className="h-10 w-10 text-xl font-bold"
+            >
+              −
+            </Button>
+            <span className="text-2xl font-bold w-20 text-center">
+              {inputAmount.toFixed(2)} L
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleIncrement}
+              className="h-10 w-10 text-xl font-bold"
+            >
+              +
+            </Button>
+          </div>
+
+          <div className="flex justify-center space-x-4">
+            <Button onClick={handleAdd} className="w-24">
+              Add
+            </Button>
+            <Button
+              onClick={handleClear}
+              variant="destructive"
+              className="w-24"
+            >
+              Clear
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
